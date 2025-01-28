@@ -43,7 +43,7 @@ function ChatBox() {
 
       // Optional: Add click behavior
       notification.onclick = () => {
-        window.open("https://mani-chat-app.netlify.app/chat"); // Open your chat page
+        window.open("https://chat-app-mani.vercel.app/"); // Open your chat page
       };
     }
   };
