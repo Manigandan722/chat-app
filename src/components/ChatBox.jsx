@@ -152,25 +152,24 @@ function ChatBox() {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       {chatId && (
-       <header className="bg-blue-600 rounded-lg text-white py-4 px-4 md:px-6 shadow-md flex flex-wrap items-center justify-between">
-       <h1 className="text-xl md:text-2xl font-semibold mb-2 md:mb-0">{`Group: ${chatId}`}</h1>
-       <div className="flex flex-wrap items-center space-y-2 md:space-y-0 md:space-x-2">
-         <input
-           type="text"
-           value={newChatGroup}
-           onChange={(e) => setNewChatGroup(e.target.value)}
-           className="w-full md:w-auto px-3 py-2 rounded-md text-white border-green-400 focus:outline-cyan-50 focus:ring-2 focus:ring-yellow-400"
-           placeholder="New group name"
-         />
-         <button
-           onClick={changeChatGroup}
-           className="bg-yellow-500 text-sm px-4 py-2 rounded-md hover:bg-yellow-600 w-full md:w-auto"
-         >
-           Change Group
-         </button>
-       </div>
-     </header>
-     
+        <header className="bg-blue-600 rounded-lg text-white py-4 px-4 md:px-6 shadow-md flex flex-wrap items-center justify-between">
+          <h1 className="text-xl md:text-2xl font-semibold mb-2 md:mb-0">{`Group: ${chatId}`}</h1>
+          <div className="flex flex-wrap items-center space-y-2 md:space-y-0 md:space-x-2">
+            <input
+              type="text"
+              value={newChatGroup}
+              onChange={(e) => setNewChatGroup(e.target.value)}
+              className="w-full md:w-auto px-3 py-2 rounded-md text-white border-green-400 focus:outline-cyan-50 focus:ring-2 focus:ring-yellow-400"
+              placeholder="New group name"
+            />
+            <button
+              onClick={changeChatGroup}
+              className="bg-yellow-500 text-sm px-4 py-2 rounded-md hover:bg-yellow-600 w-full md:w-auto"
+            >
+              Change Group
+            </button>
+          </div>
+        </header>
       )}
 
       {/* Chat Group Input */}
@@ -196,79 +195,74 @@ function ChatBox() {
       {chatId && (
         <div className="flex flex-col flex-grow">
           {/* Messages */}
-          <div className="flex-grow overflow-y-auto p-6 bg-white space-y-4">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`p-4 max-w-xs lg:max-w-md rounded-lg  ${
-                  msg.sender?.username === user.username
-                    ? "bg-blue-500 text-white ml-auto drop-shadow-xl "
-                    : "bg-gray-300 text-black mr-auto shadow-md "
-                }`}
-              >
-                <p className="text-sm font-bold">
-                  {msg.sender?.username === user.username
-                    ? "You"
-                    : msg.sender?.username || "Anonymous"}
-                </p>
-                <p className="mt-2 text-base text-wrap">{msg.content}</p>
-                {/* <SplitText
-                  text={msg.content}
-                  className=" text-center"
-                  delay={50}
-                  animationFrom={{
-                    opacity: 0,
-                    transform: "translate3d(0,50px,0)",
-                  }}
-                  animationTo={{ opacity: 1, transform: "translate3d(0,0,0)" }}
-                  easing="easeOutCubic"
-                  threshold={0.2}
-                  rootMargin="-50px"
-                  // onLetterAnimationComplete={handleAnimationComplete}
-                /> */}
-              </div>
-            ))}
-            <div ref={messagesEndRef} /> {/* Auto-scroll target */}
-          </div>
+          <div className="flex-grow overflow-y-auto p-4 bg-gray-50 space-y-3 h-[calc(100vh-120px)] max-h-full">
+  {messages.map((msg, idx) => (
+    <div
+      key={idx}
+      className={`p-3 md:p-4 max-w-[75%] sm:max-w-md rounded-xl shadow ${
+        msg.sender?.username === user.username
+          ? "bg-blue-500 text-white ml-auto"
+          : "bg-gray-200 text-gray-800 mr-auto"
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold">
+          {msg.sender?.username === user.username ? "You" : msg.sender?.username || "Anonymous"}
+        </p>
+        <span className="text-xs text-gray-400">
+          {/* {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} */}
+        </span>
+      </div>
+      <p className="mt-1 text-sm leading-relaxed">{msg.content}</p>
+    </div>
+  ))}
+  <div ref={messagesEndRef} /> {/* Auto-scroll target */}
+</div>
+
 
           {/* Message Input */}
           <div className="p-4 bg-gray-100 border-t shadow-md">
-  <div className="flex flex-col sm:flex-row items-center sm:space-x-2 space-y-2 sm:space-y-0">
-    <input
-      type="text"
-      value={newMessage}
-      onChange={(e) => setNewMessage(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") {
-          sendMessage();
-        }
-      }}
-      className="flex-grow px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
-      placeholder="Type your message..."
-    />
-    <button
-      onClick={sendMessage}
-      className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-200 hover:border hover:border-blue-600 transition-all disabled:opacity-50 w-full sm:w-auto"
-      disabled={loading} // Disable the button while loading
-    >
-      {loading ? (
-        <div className="relative w-6 h-6 mx-auto sm:mx-0">
-          <div className="absolute border-4 border-t-transparent border-blue-500 rounded-full w-full h-full animate-spin"></div>
-        </div>
-      ) : (
-        <GradientText
-          colors={["#40ffaa", "#fa1707", "#07fa0f", "#4079ff", "#07c4fa"]}
-          animationSpeed={3}
-          showBorder={false}
-          className="custom-class"
-        >
-          Send
-        </GradientText>
-      )}
-    </button>
-  </div>
-</div>
-
+            <div className="flex flex-col sm:flex-row items-center sm:space-x-2 space-y-2 sm:space-y-0">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    sendMessage();
+                  }
+                }}
+                className="flex-grow px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
+                placeholder="Type your message..."
+              />
+              <button
+                onClick={sendMessage}
+                className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-200 hover:border hover:border-blue-600 transition-all disabled:opacity-50 w-full sm:w-auto"
+                disabled={loading} // Disable the button while loading
+              >
+                {loading ? (
+                  <div className="relative w-6 h-6 mx-auto sm:mx-0">
+                    <div className="absolute border-4 border-t-transparent border-blue-500 rounded-full w-full h-full animate-spin"></div>
+                  </div>
+                ) : (
+                  <GradientText
+                    colors={[
+                      "#40ffaa",
+                      "#fa1707",
+                      "#07fa0f",
+                      "#4079ff",
+                      "#07c4fa",
+                    ]}
+                    animationSpeed={3}
+                    showBorder={false}
+                    className="custom-class"
+                  >
+                    Send
+                  </GradientText>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
