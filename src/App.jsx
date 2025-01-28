@@ -6,6 +6,7 @@ import Login from "./components/Login";
 import Register from "./components/Register";
 import Navbar from "./components/Navbar";
 import MessageNotification from "./components/MessageNotification";
+import './App.css'
 
 function App() {
     return (

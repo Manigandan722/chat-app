@@ -2,6 +2,10 @@ import React, { useState, useEffect, useContext, useRef } from "react";
 import io from "socket.io-client";
 import axios from "../api/apiService";
 import { AuthContext } from "../context/AuthContext";
+import { Grid } from "react-loading-icons";
+import SplitText from "./SplitText";
+import ShinyText from "./ShinyText";
+import GradientText from "./GradientText";
 
 const socket = io("https://websocket-server-production-4b30.up.railway.app/", {
   transports: ["websocket", "polling"],
@@ -15,7 +19,7 @@ function ChatBox() {
   const [chatGroup, setChatGroup] = useState("");
   const [newChatGroup, setNewChatGroup] = useState(""); // State for changing group
   const messagesEndRef = useRef(null); // Ref to manage auto-scrolling
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
 
   const requestNotificationPermission = () => {
     if ("Notification" in window) {
@@ -38,7 +42,7 @@ function ChatBox() {
     if (Notification.permission === "granted") {
       const notification = new Notification("New Message", {
         body: `${message.sender.username}: ${message.content}`,
-          // Optional: Path to an icon
+        // Optional: Path to an icon
       });
 
       // Optional: Add click behavior
@@ -56,7 +60,6 @@ function ChatBox() {
   };
 
   useEffect(() => {
-    
     if (!chatId) return;
     requestNotificationPermission();
     axios
@@ -165,6 +168,14 @@ function ChatBox() {
             >
               Change Group
             </button>
+            <GradientText
+              colors={["#40ffaa", "#4079ff", "#40ffaa", "#4079ff", "#40ffaa"]}
+              animationSpeed={3}
+              showBorder={false}
+              className="custom-class"
+            >
+              Add a splash of color!
+            </GradientText>
           </div>
         </header>
       )}
@@ -202,12 +213,26 @@ function ChatBox() {
                     : "bg-gray-300 text-black mr-auto shadow-md "
                 }`}
               >
-                <p className="text-sm font-medium">
+                <p className="text-sm font-bold">
                   {msg.sender?.username === user.username
                     ? "You"
                     : msg.sender?.username || "Anonymous"}
                 </p>
-                <p className="mt-2 text-base">{msg.content}</p>
+                {/* <p className="mt-2 text-base">{msg.content}</p> */}
+                <SplitText
+                  text={msg.content}
+                  className=" text-center"
+                  delay={50}
+                  animationFrom={{
+                    opacity: 0,
+                    transform: "translate3d(0,50px,0)",
+                  }}
+                  animationTo={{ opacity: 1, transform: "translate3d(0,0,0)" }}
+                  easing="easeOutCubic"
+                  threshold={0.2}
+                  rootMargin="-50px"
+                  // onLetterAnimationComplete={handleAnimationComplete}
+                />
               </div>
             ))}
             <div ref={messagesEndRef} /> {/* Auto-scroll target */}
@@ -228,15 +253,24 @@ function ChatBox() {
                 className="flex-grow px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                 placeholder="Type your message..."
               />
-               <button
+              <button
                 onClick={sendMessage}
-                className="bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600 transition-all disabled:opacity-50"
+                className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-200 hover:border hover:border-blue-600 transition-all disabled:opacity-50"
                 disabled={loading} // Disable the button while loading
               >
                 {loading ? (
-                  <div className="w-5 h-5 border-4 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+                  <div className="relative w-6 h-6">
+                  <div className="absolute border-4 border-t-transparent border-blue-500 rounded-full w-full h-full animate-spin"></div>
+                </div>
                 ) : (
-                  "Send"
+                  <GradientText
+                  colors={["#40ffaa", "#fa1707", "#07fa0f", "#4079ff", "#07c4fa"]}
+                  animationSpeed={3}
+                  showBorder={false}
+                  className="custom-class"
+                >
+                   send
+                </GradientText>
                 )}
               </button>
             </div>
