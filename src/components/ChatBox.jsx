@@ -211,8 +211,8 @@ function ChatBox() {
                     ? "You"
                     : msg.sender?.username || "Anonymous"}
                 </p>
-                {/* <p className="mt-2 text-base">{msg.content}</p> */}
-                <SplitText
+                <p className="mt-2 text-base text-wrap">{msg.content}</p>
+                {/* <SplitText
                   text={msg.content}
                   className=" text-center"
                   delay={50}
@@ -225,7 +225,7 @@ function ChatBox() {
                   threshold={0.2}
                   rootMargin="-50px"
                   // onLetterAnimationComplete={handleAnimationComplete}
-                />
+                /> */}
               </div>
             ))}
             <div ref={messagesEndRef} /> {/* Auto-scroll target */}
