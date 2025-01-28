@@ -15,7 +15,7 @@ function ChatBox() {
   const [chatGroup, setChatGroup] = useState("");
   const [newChatGroup, setNewChatGroup] = useState(""); // State for changing group
   const messagesEndRef = useRef(null); // Ref to manage auto-scrolling
-
+  const [loading, setLoading] = useState(false); 
 
   const requestNotificationPermission = () => {
     if ("Notification" in window) {
@@ -98,6 +98,8 @@ function ChatBox() {
   }, [chatId]);
 
   const sendMessage = () => {
+    setLoading(true);
+
     if (!newMessage.trim()) return;
 
     axios
@@ -114,6 +116,7 @@ function ChatBox() {
       .then((response) => {
         socket.emit("message", response.data);
         setNewMessage("");
+        setLoading(false);
         scrollToBottom();
       })
       .catch((error) => {
@@ -225,11 +228,16 @@ function ChatBox() {
                 className="flex-grow px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                 placeholder="Type your message..."
               />
-              <button
+               <button
                 onClick={sendMessage}
-                className="bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600 transition-all"
+                className="bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600 transition-all disabled:opacity-50"
+                disabled={loading} // Disable the button while loading
               >
-                Send
+                {loading ? (
+                  <div className="w-5 h-5 border-4 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+                ) : (
+                  "Send"
+                )}
               </button>
             </div>
           </div>
