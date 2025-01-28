@@ -152,7 +152,7 @@ function ChatBox() {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       {chatId && (
-       <header className="bg-blue-600 text-white py-4 px-4 md:px-6 shadow-md flex flex-wrap items-center justify-between">
+       <header className="bg-blue-600 rounded-lg text-white py-4 px-4 md:px-6 shadow-md flex flex-wrap items-center justify-between">
        <h1 className="text-xl md:text-2xl font-semibold mb-2 md:mb-0">{`Group: ${chatId}`}</h1>
        <div className="flex flex-wrap items-center space-y-2 md:space-y-0 md:space-x-2">
          <input
