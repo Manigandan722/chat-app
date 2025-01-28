@@ -4,164 +4,239 @@ import axios from "../api/apiService";
 import { AuthContext } from "../context/AuthContext";
 
 const socket = io("https://websocket-server-production-4b30.up.railway.app/", {
-    transports: ["websocket", "polling"],
+  transports: ["websocket", "polling"],
 });
 
 function ChatBox() {
-    const { user } = useContext(AuthContext);
-    const [chatId, setChatId] = useState("");
-    const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState("");
-    const [chatGroup, setChatGroup] = useState("");
-    const messagesEndRef = useRef(null); // Ref to manage auto-scrolling
+  const { user } = useContext(AuthContext);
+  const [chatId, setChatId] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [chatGroup, setChatGroup] = useState("");
+  const [newChatGroup, setNewChatGroup] = useState(""); // State for changing group
+  const messagesEndRef = useRef(null); // Ref to manage auto-scrolling
 
-    // Auto-scroll to the latest message
-    const scrollToBottom = () => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    };
 
-    useEffect(() => {
-        if (!chatId) return;
-
-        // Load initial messages
-        axios
-            .get(`/api/chat/${chatId}`, {
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${user.token}`,
-                },
-            })
-            .then((response) => {
-                setMessages(response.data);
-                scrollToBottom();
-            });
-
-        // Listen for new messages
-        socket.on("message", (message) => {
-            setMessages((prevMessages) => [...prevMessages, message]);
-            scrollToBottom();
+  const requestNotificationPermission = () => {
+    if ("Notification" in window) {
+      if (Notification.permission !== "granted") {
+        Notification.requestPermission().then((permission) => {
+          if (permission === "granted") {
+            console.log("Notification permission granted");
+          } else {
+            console.log("Notification permission denied");
+          }
         });
+      }
+    } else {
+      console.log("Your browser does not support notifications");
+    }
+  };
 
-        // Cleanup on unmount
-        return () => {
-            socket.off("message");
-            socket.disconnect();
-        };
-    }, [chatId]);
+  // Function to trigger notification
+  const triggerNotification = (message) => {
+    if (Notification.permission === "granted") {
+      const notification = new Notification("New Message", {
+        body: `${message.sender.username}: ${message.content}`,
+          // Optional: Path to an icon
+      });
 
-    const sendMessage = () => {
-        if (!newMessage.trim()) return;
+      // Optional: Add click behavior
+      notification.onclick = () => {
+        window.open("https://mani-chat-app.netlify.app/chat"); // Open your chat page
+      };
+    }
+  };
 
-        axios
-            .post(
-                "/api/chat/send",
-                { content: newMessage, chatId },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${user.token}`,
-                    },
-                }
-            )
-            .then((response) => {
-                socket.emit("message", response.data);
-                setNewMessage("");
-                scrollToBottom();
-            })
-            .catch((error) => {
-                console.error("Failed to send message:", error);
-            });
+  // Auto-scroll to the latest message
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    
+    if (!chatId) return;
+    requestNotificationPermission();
+    axios
+      .get(`/api/chat/${chatId}`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.token}`,
+        },
+      })
+      .then((response) => {
+        setMessages(response.data);
+        scrollToBottom();
+      })
+      .catch((error) => {
+        console.error("Failed to load messages:", error);
+      });
+
+    socket.on("connect", () => {
+      console.log("Connected to WebSocket server");
+    });
+
+    socket.on("message", (message) => {
+      setMessages((prevMessages) => [...prevMessages, message]);
+      scrollToBottom();
+      triggerNotification(message);
+    });
+
+    socket.on("connect_error", (error) => {
+      console.error("WebSocket connection error:", error);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("WebSocket disconnected:", reason);
+    });
+
+    return () => {
+      socket.off("message");
     };
+  }, [chatId]);
 
-    const joinChatGroup = () => {
-        if (!chatGroup.trim()) {
-            alert("Please enter a chat group name!");
-            return;
+  const sendMessage = () => {
+    if (!newMessage.trim()) return;
+
+    axios
+      .post(
+        "/api/chat/send",
+        { content: newMessage, chatId },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${user.token}`,
+          },
         }
-        setChatId(chatGroup.trim());
-        setMessages([]);
-    };
+      )
+      .then((response) => {
+        socket.emit("message", response.data);
+        setNewMessage("");
+        scrollToBottom();
+      })
+      .catch((error) => {
+        console.error("Failed to send message:", error);
+      });
+  };
 
-    return (
-        <div className="flex flex-col h-screen bg-gray-100">
-            {/* Header */}
-            <div className="bg-blue-500 text-white p-4">
-                <div className="text-xl font-bold">
-                    {chatId ? `Group: ${chatId}` : "Join a Chat Group"}
-                </div>
-            </div>
+  const joinChatGroup = () => {
+    if (!chatGroup.trim()) {
+      alert("Please enter a chat group name!");
+      return;
+    }
+    setChatId(chatGroup.trim());
+    setMessages([]);
+  };
 
-            {/* Chat Group Input */}
-            {!chatId && (
-                <div className="p-4">
-                    <input
-                        type="text"
-                        value={chatGroup}
-                        onChange={(e) => setChatGroup(e.target.value)}
-                        className="border p-2 rounded w-full"
-                        placeholder="Enter chat group name"
-                    />
-                    <button
-                        onClick={joinChatGroup}
-                        className="bg-green-500 text-white px-4 py-2 mt-2 rounded hover:bg-green-600 w-full"
-                    >
-                        Join Group
-                    </button>
-                </div>
-            )}
+  // Handle changing the chat group
+  const changeChatGroup = () => {
+    if (!newChatGroup.trim()) {
+      alert("Please enter a new chat group name!");
+      return;
+    }
+    setChatGroup(newChatGroup.trim());
+    setNewChatGroup(""); // Clear the new chat group input
+    setMessages([]); // Clear messages for the new group
+    setChatId(newChatGroup.trim()); // Switch to the new group
+  };
 
-            {/* Messages */}
-            {chatId && (
-                <div className="flex flex-col flex-grow overflow-hidden">
-                    <div className="flex-grow overflow-y-auto p-4 bg-white">
-                        {messages.map((msg, idx) => (
-                            <div
-                            key={idx}
-                            className={`p-3 rounded-lg mb-4 ${
-                                msg.sender?.username === user.username
-                                    ? "bg-gradient-to-r from-orange-000 to-teal-700 text-white self-end text-right"
-                                    : "bg-gradient-to-r from-amber-700 to-indigo-100 self-start text-left text-white"
-                            }`}
-                        ><div>
-                                <strong>{msg.sender?.username === user.username ?"You":""|| msg.sender?.username|| "Anonymous"}:</strong>
-                                <p className=""> {msg.content}</p>
-                               
-                            </div>
-                                
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef} className="mb-16" /> {/* Auto-scroll target */}
-                    </div>
+  return (
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header */}
+      {chatId && (
+        <header className="bg-blue-600 text-white py-4 px-6 shadow-md flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">{`Group: ${chatId}`}</h1>
+          <div className="flex items-center space-x-2">
+            <input
+              type="text"
+              value={newChatGroup}
+              onChange={(e) => setNewChatGroup(e.target.value)}
+              className="px-3 py-2 rounded-md text-white border-green-400 focus:outline-cyan-50 focus:ring-2 focus:ring-yellow-400"
+              placeholder="New group name"
+            />
+            <button
+              onClick={changeChatGroup}
+              className="bg-yellow-500 text-sm px-4 py-2 rounded-md hover:bg-yellow-600"
+            >
+              Change Group
+            </button>
+          </div>
+        </header>
+      )}
 
-                    {/* Message Input */}
-                    <div className="p-4 bg-gray-200">
-                        <div className="flex space-x-2">
-                            <input
-                                type="text"
-                                value={newMessage}
-                                onChange={(e) => setNewMessage(e.target.value)}
-                                className="border flex-grow p-2 rounded"
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        sendMessage(); // Trigger sendMessage when Enter is pressed
-                                    }
-                                }}
-                                placeholder="Type a message..."
-                            />
-                            <button
-                                onClick={sendMessage}
-                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                            >
-                                Send
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+      {/* Chat Group Input */}
+      {!chatId && (
+        <div className="p-6">
+          <input
+            type="text"
+            value={chatGroup}
+            onChange={(e) => setChatGroup(e.target.value)}
+            className="w-full px-4 py-3 border rounded-md text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="Enter chat group name"
+          />
+          <button
+            onClick={joinChatGroup}
+            className="mt-4 w-full bg-green-500 text-white py-3 rounded-md hover:bg-green-600 transition-all"
+          >
+            Join Group
+          </button>
         </div>
-    );
+      )}
+
+      {/* Messages and Input */}
+      {chatId && (
+        <div className="flex flex-col flex-grow">
+          {/* Messages */}
+          <div className="flex-grow overflow-y-auto p-6 bg-white space-y-4">
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`p-4 max-w-xs lg:max-w-md rounded-lg  ${
+                  msg.sender?.username === user.username
+                    ? "bg-blue-500 text-white ml-auto drop-shadow-xl "
+                    : "bg-gray-300 text-black mr-auto shadow-md "
+                }`}
+              >
+                <p className="text-sm font-medium">
+                  {msg.sender?.username === user.username
+                    ? "You"
+                    : msg.sender?.username || "Anonymous"}
+                </p>
+                <p className="mt-2 text-base">{msg.content}</p>
+              </div>
+            ))}
+            <div ref={messagesEndRef} /> {/* Auto-scroll target */}
+          </div>
+
+          {/* Message Input */}
+          <div className="p-4 bg-gray-100 border-t shadow-md">
+            <div className="flex items-center space-x-2">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    sendMessage();
+                  }
+                }}
+                className="flex-grow px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Type your message..."
+              />
+              <button
+                onClick={sendMessage}
+                className="bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600 transition-all"
+              >
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default ChatBox;

@@ -5,6 +5,7 @@ import ChatPage from "./pages/ChatPage";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import Navbar from "./components/Navbar";
+import MessageNotification from "./components/MessageNotification";
 
 function App() {
     return (
@@ -19,6 +20,7 @@ function App() {
                     <Route path="/register" element={<Register />} />
                 </Routes>
             </div>
+            <MessageNotification />
         </Router>
         </>
     );

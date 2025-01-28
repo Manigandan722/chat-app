@@ -7,22 +7,28 @@ function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState(null);
-    const [isLoading, setIsLoading] = useState(false); // Add loading state
-    const { login } = useContext(AuthContext);
-    const navigate = useNavigate();
+    const [isLoading, setIsLoading] = useState(false); // Loading state
+    const { login } = useContext(AuthContext); // Get login function from AuthContext
+    const navigate = useNavigate(); // To redirect after login
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true); // Start loading
+        setError(null); // Clear previous errors
+        setIsLoading(true); // Start loading state
         try {
             const response = await axios.post("/api/auth/login", { email, password });
-            login(response.data); // Save user data in AuthContext
-            localStorage.setItem("token", response.data.token); // Store token
+            
+            // Save user data in AuthContext and localStorage
+            const userData = response.data;
+            login(userData); // Update AuthContext with user data
+            localStorage.setItem("user", JSON.stringify(userData)); // Save user info
+            localStorage.setItem("token", userData.token); // Save token
+
             navigate("/chat"); // Redirect to chat page
         } catch (err) {
             setError(err.response?.data?.message || "Login failed. Try again.");
         } finally {
-            setIsLoading(false); // Stop loading
+            setIsLoading(false); // Stop loading state
         }
     };
 
@@ -58,14 +64,14 @@ function Login() {
                 </div>
                 <button
                     type="submit"
-                    disabled={isLoading} // Disable button while loading
+                    disabled={isLoading}
                     className={`w-full p-2 rounded ${
                         isLoading
                             ? "bg-blue-400 cursor-not-allowed"
                             : "bg-blue-500 hover:bg-blue-600"
                     } text-white`}
                 >
-                    {isLoading ? "Loading..." : "Login"} {/* Change text based on loading state */}
+                    {isLoading ? "Loading..." : "Login"}
                 </button>
                 <p className="text-sm text-center mt-4">
                     Don't have an account?{" "}
