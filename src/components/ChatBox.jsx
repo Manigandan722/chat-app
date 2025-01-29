@@ -84,7 +84,7 @@ function ChatBox() {
     socket.on("message", (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
       scrollToBottom();
-      // triggerNotification(message);
+      triggerNotification(message);
     });
 
     socket.on("connect_error", (error) => {
