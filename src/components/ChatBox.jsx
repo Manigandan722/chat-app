@@ -40,15 +40,19 @@ function ChatBox() {
   // Function to trigger notification
   const triggerNotification = (message) => {
     if (Notification.permission === "granted") {
+      if (message.chatId === chatId) {
       const notification = new Notification("New Message", {
         body: `${message.sender.username}: ${message.content}`,
         // Optional: Path to an icon
-      });
+      })
 
-      // Optional: Add click behavior
       notification.onclick = () => {
         window.open("https://chat-app-mani.vercel.app", "_blank"); // Open your chat page
       };
+    };
+
+      // Optional: Add click behavior
+     
     }
   };
 
@@ -80,12 +84,18 @@ function ChatBox() {
     socket.on("connect", () => {
       console.log("Connected to WebSocket server");
     });
-
     socket.on("message", (message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
-      scrollToBottom();
-      triggerNotification(message);
+      // Only process the message if it's for the current active chat group
+     
+        setMessages((prevMessages) => [...prevMessages, message]);
+        scrollToBottom();
+        // Only trigger notification if the sender is not the current user
+        if (message.sender.username !== user.username) {
+          triggerNotification(message);
+        }
+     
     });
+  
 
     socket.on("connect_error", (error) => {
       console.error("WebSocket connection error:", error);
