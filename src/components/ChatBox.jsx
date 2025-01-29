@@ -147,6 +147,42 @@ function ChatBox() {
     setMessages([]); // Clear messages for the new group
     setChatId(newChatGroup.trim()); // Switch to the new group
   };
+  // console.log(messages);
+
+  const formatDate = (timestamp) => {
+    const createdAt = new Date(timestamp);
+    const now = new Date();
+
+    // Get date parts
+    const createdDate = createdAt.toDateString();
+    const todayDate = now.toDateString();
+    const yesterdayDate = new Date(
+      now.setDate(now.getDate() - 1)
+    ).toDateString();
+
+    if (createdDate === todayDate) {
+      return `Today, ${createdAt.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+    } else if (createdDate === yesterdayDate) {
+      return `Yesterday, ${createdAt.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      })}`;
+    } else {
+      return createdAt.toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
@@ -159,9 +195,10 @@ function ChatBox() {
               type="text"
               value={newChatGroup}
               onChange={(e) => setNewChatGroup(e.target.value)}
-              className="w-full md:w-auto px-3 py-2 rounded-md text-white border-green-400 focus:outline-cyan-50 focus:ring-2 focus:ring-yellow-400"
+              className="w-full md:w-auto px-3 py-2 rounded-md text-white border border-gray-300 shadow-lg focus:border-cyan-500 focus:ring-yellow-400 outline-none"
               placeholder="New group name"
             />
+
             <button
               onClick={changeChatGroup}
               className="bg-yellow-500 text-sm px-4 py-2 rounded-md hover:bg-yellow-600 w-full md:w-auto"
@@ -196,29 +233,39 @@ function ChatBox() {
         <div className="flex flex-col flex-grow">
           {/* Messages */}
           <div className="flex-grow overflow-y-auto p-4 bg-gray-50 space-y-3 h-[calc(100vh-120px)] max-h-full">
-  {messages.map((msg, idx) => (
-    <div
-      key={idx}
-      className={`p-3 md:p-4 max-w-[75%] sm:max-w-md rounded-xl shadow ${
-        msg.sender?.username === user.username
-          ? "bg-blue-500 text-white ml-auto"
-          : "bg-gray-200 text-gray-800 mr-auto"
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold">
-          {msg.sender?.username === user.username ? "You" : msg.sender?.username || "Anonymous"}
-        </p>
-        <span className="text-xs text-gray-400">
-          {/* {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} */}
-        </span>
-      </div>
-      <p className="mt-1 text-sm leading-relaxed">{msg.content}</p>
-    </div>
-  ))}
-  <div ref={messagesEndRef} /> {/* Auto-scroll target */}
-</div>
-
+            {messages.map((msg, idx) => (
+              <div
+                key={idx}
+                className={`p-3 md:p-4 max-w-[75%] sm:max-w-md rounded-xl shadow ${
+                  msg.sender?.username === user.username
+                    ? "bg-blue-500 text-white ml-auto"
+                    : "bg-gray-200 text-gray-800 mr-auto"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold">
+                    {msg.sender?.username === user.username
+                      ? "You"
+                      : msg.sender?.username || "Anonymous"}
+                  </p>
+                  <span
+                    className={`text-xs ${
+                      msg.sender?.username === user.username
+                        ? "text-gray-100"
+                        : msg.sender
+                        ? "text-gray-400"
+                        : "text-gray-400"
+                    }`}
+                  >
+                    {formatDate(msg.createdAt)}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm leading-relaxed">{msg.content}</p>
+              </div>
+            ))}
+            <div ref={messagesEndRef} className="mb-20" />{" "}
+            {/* Auto-scroll target */}
+          </div>
 
           {/* Message Input */}
           <div className="p-4 bg-gray-100 border-t shadow-md">
