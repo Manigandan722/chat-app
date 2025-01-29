@@ -40,7 +40,9 @@ function ChatBox() {
   // Function to trigger notification
   const triggerNotification = (message) => {
     if (Notification.permission === "granted") {
-      if (message.chatId === chatId) {
+      console.log(message);
+      if (message.chat === chatId) {
+        console.log(message);
       const notification = new Notification("New Message", {
         body: `${message.sender.username}: ${message.content}`,
         // Optional: Path to an icon
@@ -86,14 +88,14 @@ function ChatBox() {
     });
     socket.on("message", (message) => {
       // Only process the message if it's for the current active chat group
-     
+      if (message.chat === chatId) {
         setMessages((prevMessages) => [...prevMessages, message]);
         scrollToBottom();
         // Only trigger notification if the sender is not the current user
         if (message.sender.username !== user.username) {
           triggerNotification(message);
         }
-     
+      }
     });
   
 
