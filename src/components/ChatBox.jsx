@@ -6,6 +6,7 @@ import { Grid } from "react-loading-icons";
 import SplitText from "./SplitText";
 import ShinyText from "./ShinyText";
 import GradientText from "./GradientText";
+import logo from "../../public/logo.png"
 
 const socket = io("https://websocket-server-production-4b30.up.railway.app/", {
   transports: ["websocket", "polling"],
@@ -40,24 +41,35 @@ function ChatBox() {
   // Function to trigger notification
   const triggerNotification = (message) => {
     if (Notification.permission === "granted") {
-      console.log(message);
       if (message.chat === chatId) {
-        console.log(message);
-      const notification = new Notification("New Message", {
-        body: `${message.sender.username}: ${message.content}`,
-        // Optional: Path to an icon
-      })
-
-      notification.onclick = () => {
-        window.open("https://chat-app-mani.vercel.app", "_blank"); // Open your chat page
-      };
-    };
+        const notification = new Notification("New Message", {
+          body: `${message.sender.username}: ${message.content}`,
+          // Optional: Path to an icon
+        });
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification("New Message", {
+            body: `${message.sender.username}: ${message.content}`,
+            icon: logo, // Add an icon for Android visibility
+            vibrate: [200, 100, 200], // Vibrate pattern for mobile
+            tag: message.chatId, // Group notifications by chat ID
+          })
+        })
+        notification.onclick = () => {
+          window.open("https://chat-app-mani.vercel.app", "_blank"); // Open your chat page
+        };
+      }
 
       // Optional: Add click behavior
-     
     }
   };
-
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(() => console.log("Service Worker Registered"))
+        .catch((error) => console.log("Service Worker Registration Failed", error));
+    }
+  }, []);
   // Auto-scroll to the latest message
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -97,7 +109,6 @@ function ChatBox() {
         }
       }
     });
-  
 
     socket.on("connect_error", (error) => {
       console.error("WebSocket connection error:", error);
