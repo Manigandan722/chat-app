@@ -2,11 +2,8 @@ import React, { useState, useEffect, useContext, useRef } from "react";
 import io from "socket.io-client";
 import axios from "../api/apiService";
 import { AuthContext } from "../context/AuthContext";
-import { Grid } from "react-loading-icons";
-import SplitText from "./SplitText";
-import ShinyText from "./ShinyText";
 import GradientText from "./GradientText";
-import logo from "../../public/logo.png"
+import logo from "../../public/logo.png";
 
 const socket = io("https://websocket-server-production-4b30.up.railway.app/", {
   transports: ["websocket", "polling"],
@@ -18,68 +15,57 @@ function ChatBox() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [chatGroup, setChatGroup] = useState("");
-  const [newChatGroup, setNewChatGroup] = useState(""); // State for changing group
-  const messagesEndRef = useRef(null); // Ref to manage auto-scrolling
+  const [newChatGroup, setNewChatGroup] = useState("");
+  const messagesEndRef = useRef(null);
   const [loading, setLoading] = useState(false);
 
-  const requestNotificationPermission = () => {
-    if ("Notification" in window) {
-      if (Notification.permission !== "granted") {
-        Notification.requestPermission().then((permission) => {
-          if (permission === "granted") {
-            console.log("Notification permission granted");
-          } else {
-            console.log("Notification permission denied");
-          }
-        });
-      }
-    } else {
-      console.log("Your browser does not support notifications");
-    }
-  };
-
-  // Function to trigger notification
-  const triggerNotification = (message) => {
-    if (Notification.permission === "granted") {
-      if (message.chat === chatId) {
-        const notification = new Notification("New Message", {
-          body: `${message.sender.username}: ${message.content}`,
-          // Optional: Path to an icon
-        });
-        navigator.serviceWorker.ready.then((registration) => {
-          registration.showNotification("New Message", {
-            body: `${message.sender.username}: ${message.content}`,
-            icon: logo, // Add an icon for Android visibility
-            vibrate: [200, 100, 200], // Vibrate pattern for mobile
-            tag: message.chatId, // Group notifications by chat ID
-          })
-        })
-        notification.onclick = () => {
-          window.open("https://chat-app-mani.vercel.app", "_blank"); // Open your chat page
-        };
-      }
-
-      // Optional: Add click behavior
-    }
-  };
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then(() => console.log("Service Worker Registered"))
-        .catch((error) => console.log("Service Worker Registration Failed", error));
-    }
-  }, []);
-  // Auto-scroll to the latest message
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   };
 
+  const requestNotificationPermission = () => {
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  };
+
+  const triggerNotification = (message) => {
+    if (Notification.permission === "granted" && message.chat === chatId) {
+      const notification = new Notification("New Message", {
+        body: `${message.sender.username}: ${message.content}`,
+        icon: logo,
+      });
+
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification("New Message", {
+          body: `${message.sender.username}: ${message.content}`,
+          icon: logo,
+          vibrate: [200, 100, 200],
+          tag: message.chatId,
+        });
+      });
+
+      notification.onclick = () => {
+        window.open("https://chat-app-mani.vercel.app", "_blank");
+      };
+    }
+  };
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch((error) =>
+        console.log("Service Worker Registration Failed", error)
+      );
+    }
+  }, []);
+
   useEffect(() => {
     if (!chatId) return;
+
     requestNotificationPermission();
+
     axios
       .get(`/api/chat/${chatId}`, {
         headers: {
@@ -98,12 +84,12 @@ function ChatBox() {
     socket.on("connect", () => {
       console.log("Connected to WebSocket server");
     });
+
     socket.on("message", (message) => {
-      // Only process the message if it's for the current active chat group
       if (message.chat === chatId) {
         setMessages((prevMessages) => [...prevMessages, message]);
         scrollToBottom();
-        // Only trigger notification if the sender is not the current user
+
         if (message.sender.username !== user.username) {
           triggerNotification(message);
         }
@@ -123,9 +109,50 @@ function ChatBox() {
     };
   }, [chatId]);
 
+  // 🌐 ThingSpeak IoT Data Integration
+  useEffect(() => {
+    if (chatId !== "iot-data") return;
+
+    const fetchThingSpeakData = async () => {
+      try {
+        const res = await fetch(
+          "https://api.thingspeak.com/channels/2908951/fields/1.json?results=1"
+        );
+        const data = await res.json();
+        const feed = data.feeds[0];
+
+        if (feed) {
+          const fakeMessage = {
+            _id: `ts-${feed.entry_id}`,
+            content: `🌡️ Sensor Reading: ${feed.field1}`,
+            createdAt: feed.created_at,
+            sender: {
+              username: "ThingSpeakBot",
+            },
+            chat: "iot-data",
+          };
+
+          setMessages((prev) => {
+            const exists = prev.find((msg) => msg._id === fakeMessage._id);
+            if (exists) return prev;
+            return [...prev, fakeMessage];
+          });
+
+          scrollToBottom();
+        }
+      } catch (error) {
+        console.error("Error fetching ThingSpeak data:", error);
+      }
+    };
+
+    fetchThingSpeakData();
+
+    const interval = setInterval(fetchThingSpeakData, 8000);
+    return () => clearInterval(interval);
+  }, [chatId]);
+
   const sendMessage = () => {
     setLoading(true);
-
     if (!newMessage.trim()) return;
 
     axios
@@ -147,6 +174,7 @@ function ChatBox() {
       })
       .catch((error) => {
         console.error("Failed to send message:", error);
+        setLoading(false);
       });
   };
 
@@ -159,29 +187,24 @@ function ChatBox() {
     setMessages([]);
   };
 
-  // Handle changing the chat group
   const changeChatGroup = () => {
     if (!newChatGroup.trim()) {
       alert("Please enter a new chat group name!");
       return;
     }
     setChatGroup(newChatGroup.trim());
-    setNewChatGroup(""); // Clear the new chat group input
-    setMessages([]); // Clear messages for the new group
-    setChatId(newChatGroup.trim()); // Switch to the new group
+    setNewChatGroup("");
+    setMessages([]);
+    setChatId(newChatGroup.trim());
   };
-  // console.log(messages);
 
   const formatDate = (timestamp) => {
     const createdAt = new Date(timestamp);
     const now = new Date();
 
-    // Get date parts
     const createdDate = createdAt.toDateString();
     const todayDate = now.toDateString();
-    const yesterdayDate = new Date(
-      now.setDate(now.getDate() - 1)
-    ).toDateString();
+    const yesterdayDate = new Date(now.setDate(now.getDate() - 1)).toDateString();
 
     if (createdDate === todayDate) {
       return `Today, ${createdAt.toLocaleTimeString("en-IN", {
@@ -211,20 +234,19 @@ function ChatBox() {
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header */}
       {chatId && (
-        <header className="bg-blue-600 rounded-lg text-white py-4 px-4 md:px-6 shadow-md flex flex-wrap items-center justify-between">
+        <header className="bg-blue-600 text-white py-4 px-4 md:px-6 shadow-md flex flex-wrap items-center justify-between rounded-md">
           <h1 className="text-xl md:text-2xl font-semibold mb-2 md:mb-0">{`Group: ${chatId}`}</h1>
           <div className="flex flex-wrap items-center space-y-2 md:space-y-0 md:space-x-2">
             <input
               type="text"
               value={newChatGroup}
               onChange={(e) => setNewChatGroup(e.target.value)}
-              className="w-full md:w-auto px-3 py-2 rounded-md text-white border border-gray-300 shadow-lg focus:border-cyan-500 focus:ring-yellow-400 outline-none"
+              className="px-3 py-2 rounded-md text-white border border-gray-300 shadow-lg focus:border-cyan-500 focus:ring-yellow-400 outline-none"
               placeholder="New group name"
             />
-
             <button
               onClick={changeChatGroup}
-              className="bg-yellow-500 text-sm px-4 py-2 rounded-md hover:bg-yellow-600 w-full md:w-auto"
+              className="bg-yellow-500 text-sm px-4 py-2 rounded-md hover:bg-yellow-600"
             >
               Change Group
             </button>
@@ -254,7 +276,6 @@ function ChatBox() {
       {/* Messages and Input */}
       {chatId && (
         <div className="flex flex-col flex-grow">
-          {/* Messages */}
           <div className="flex-grow overflow-y-auto p-4 bg-gray-50 space-y-3 h-[calc(100vh-120px)] max-h-full">
             {messages.map((msg, idx) => (
               <div
@@ -262,6 +283,8 @@ function ChatBox() {
                 className={`p-3 md:p-4 max-w-[75%] sm:max-w-md rounded-xl shadow ${
                   msg.sender?.username === user.username
                     ? "bg-blue-500 text-white ml-auto"
+                    : msg.sender?.username === "ThingSpeakBot"
+                    ? "bg-green-200 text-black mr-auto"
                     : "bg-gray-200 text-gray-800 mr-auto"
                 }`}
               >
@@ -271,26 +294,16 @@ function ChatBox() {
                       ? "You"
                       : msg.sender?.username || "Anonymous"}
                   </p>
-                  <span
-                    className={`text-xs ${
-                      msg.sender?.username === user.username
-                        ? "text-gray-100"
-                        : msg.sender
-                        ? "text-gray-400"
-                        : "text-gray-400"
-                    }`}
-                  >
+                  <span className="text-xs text-gray-500">
                     {formatDate(msg.createdAt)}
                   </span>
                 </div>
                 <p className="mt-1 text-sm leading-relaxed">{msg.content}</p>
               </div>
             ))}
-            <div ref={messagesEndRef} className="mb-20" />{" "}
-            {/* Auto-scroll target */}
+            <div ref={messagesEndRef} className="mb-20" />
           </div>
 
-          {/* Message Input */}
           <div className="p-4 bg-gray-100 border-t shadow-md">
             <div className="flex flex-col sm:flex-row items-center sm:space-x-2 space-y-2 sm:space-y-0">
               <input
@@ -302,27 +315,21 @@ function ChatBox() {
                     sendMessage();
                   }
                 }}
-                className="flex-grow px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 w-full sm:w-auto"
+                className="flex-grow px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                 placeholder="Type your message..."
               />
               <button
                 onClick={sendMessage}
-                className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-200 hover:border hover:border-blue-600 transition-all disabled:opacity-50 w-full sm:w-auto"
-                disabled={loading} // Disable the button while loading
+                className="bg-black text-white px-6 py-3 rounded-md hover:bg-gray-200 hover:border hover:border-blue-600 transition-all disabled:opacity-50"
+                disabled={loading}
               >
                 {loading ? (
-                  <div className="relative w-6 h-6 mx-auto sm:mx-0">
+                  <div className="relative w-6 h-6 mx-auto">
                     <div className="absolute border-4 border-t-transparent border-blue-500 rounded-full w-full h-full animate-spin"></div>
                   </div>
                 ) : (
                   <GradientText
-                    colors={[
-                      "#40ffaa",
-                      "#fa1707",
-                      "#07fa0f",
-                      "#4079ff",
-                      "#07c4fa",
-                    ]}
+                    colors={["#40ffaa", "#fa1707", "#07fa0f", "#4079ff", "#07c4fa"]}
                     animationSpeed={3}
                     showBorder={false}
                     className="custom-class"
